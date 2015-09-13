@@ -9,5 +9,5 @@ git config user.name "Travis CI"
 git config user.email "none@none.no"
 git add .
 git commit -m "Deploy to GitHub Pages"
-git push --force --quiet "https://radium226:${GITHUB_TOKEN}@github.com/radium226/resume.git" "master:gh-pages"
+git push --force "https://radium226:${GITHUB_TOKEN}@github.com/radium226/resume.git" "master:gh-pages"
 
