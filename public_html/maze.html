@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Land Art</title>
+        <meta charset="UTF-8" />
+        <style type="text/css">
+            #rendering {
+                width: 500px;
+                height: 500px;
+                border: #000000 1px solid;
+            }
+        </style>
+        <script type="text/javascript" src="scripts/paper.js" ></script>
+        <script type="text/javascript">
+            paper.install(window);
+            
+            var units = {
+                CM: {
+                    toCM: function(value) {
+                        return value;
+                    }
+                }, 
+                M: {
+                    toCM: function(value) {
+                        return value * 100;
+                    }
+                }
+            };
+            
+            var scale = {
+               projection: {
+                   maxRadius: 500 // In px
+               }, 
+               reality: {
+                   maxRadius: (2 + 6 + 6.4) * 100 // In cm
+               }, 
+               point: function(x, y, unit) {
+                   return new Point(this.apply(x, unit), this.apply(y, unit));
+               }, 
+               apply: function(value, unit) {
+                   if (!unit) unit = units.CM;
+                   return unit.toCM(value) * this.projection.maxRadius / this.reality.maxRadius;
+               }
+            };
+            
+            var art = {
+                rings: [
+                    {
+                        minRadius: 2 * 100, 
+                        maxRadius: (2 + 6) * 100
+                    }, 
+                    {
+                        minRadius: (2 + 6) * 100, 
+                        maxRadius: (2 + 6 + 6.4) * 100
+                    }
+                ]
+            };
+            
+            window.onload = function() {
+		var canvas = document.getElementById("rendering");
+                width = canvas.style.width;
+                console.log("width = " + width);
+                
+		paper.setup(canvas);
+		var path = new paper.Path();
+                initCanvas(path);
+                paper.view.draw();
+            }
+            
+            function newPost(x, y, color, unit) {
+                var dot = new Path.Circle(scale.point(x, y, unit), scale.apply(2.5, units.CM));
+                if (!color) color = "black";
+                dot.fillColor = color;
+                return dot;
+            }
+            
+            function initCanvas(path) {
+                drawFirstRing(path);
+                drawSecondRing(path);
+            }
+            
+            function __drawRing(path, minRadius, maxRadius, color) {
+                 var minCircle = new Path.Circle(scale.point(0, 0), scale.apply(minRadius));
+                minCircle.strokeColor = color;
+                path.add(minCircle);
+                
+                var maxCircle = new Path.Circle(scale.point(0, 0), scale.apply(maxRadius));
+                maxCircle.strokeColor = color;
+                path.add(maxCircle);
+            }
+            
+            function drawSecondRing(path) {
+                var minRadius = art.rings[1].minRadius;
+                var maxRadius = art.rings[1].maxRadius;
+                __drawRing(path, minRadius, maxRadius, "#FF0000");
+            }
+            
+            function drawFirstRing(path) {
+                var minRadius = art.rings[0].minRadius;
+                var maxRadius = art.rings[0].maxRadius;
+                __drawRing(path, minRadius, maxRadius, "#00FF00");
+                
+                for (var x = 0; x <= maxRadius; x += 15) {
+                    for (var y = 0; y <= maxRadius; y += 15) {
+                        if (isPointInCircle({x: x, y: y}, {center: {x: 0, y:0}, radius: maxRadius}) && !isPointInCircle({x: x, y: y}, {center: {x: 0, y:0}, radius: minRadius})) {
+                            path.add(newPost(x, y));
+                        }
+                    }
+                }
+            }
+            
+            function distanceBetweenPoints(a, b) {
+                return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+            }
+            
+            function isPointInCircle(point, circle) {
+                return distanceBetweenPoints(circle.center, point) <= circle.radius;
+            }
+        </script>
+    </head>
+    <body>
+        <canvas id="rendering"></canvas>
+        <p>Maze</p>
+    </body>
+</html>
