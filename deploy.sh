@@ -2,7 +2,7 @@
 set -e # exit with nonzero exit code if anything fails
 
 mkdir -p "gh-pages"
-cp -R "public_html/" "gh-pages/"
+cp -R "public_html/*" "gh-pages/"
 cd "gh-pages"
 git init
 git config user.name "Travis CI"
