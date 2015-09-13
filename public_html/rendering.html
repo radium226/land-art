@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Land Art</title>
+        <meta charset="UTF-8">
+        <style type="text/css">
+            body {
+                margin: 0;
+            }
+
+            canvas { 
+                width: 100%;
+                height: 100%;  
+            }
+
+            #rendering {
+            }
+        </style>
+    </head>
+    <body>
+        <script type="text/javascript" src="scripts/Three.js"></script>
+        <script type="text/javascript" src="scripts/OrbitControls.js"></script>
+        <div id="rendering"></div>
+        <script type="x-shader/x-vertex" id="vertexShader">
+            varying vec3 vWorldPosition;
+            void main() {
+                vec4 worldPosition = modelMatrix * vec4( position, 1.0 );
+                vWorldPosition = worldPosition.xyz;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+            }
+        </script>
+        <script type="x-shader/x-fragment" id="fragmentShader">
+            uniform vec3 topColor;
+            uniform vec3 bottomColor;
+            uniform float offset;
+            uniform float exponent;
+
+            varying vec3 vWorldPosition;
+
+            void main() {
+                float h = normalize( vWorldPosition + offset ).y;
+                gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h, 0.0 ), exponent ), 0.0 ) ), 1.0 );
+            }
+        </script>
+        <script type="text/javascript">
+function deg2rad(angle) {
+    return (angle / 180) * Math.PI;
+}
+
+
+var defaultPostRadius = 0.5;
+var defaultPostHeight = 50;
+var defaultGroundHeight = 10000;
+var defaultGroundWidth = defaultGroundHeight;
+var metalTexture = THREE.ImageUtils.loadTexture("images/metal.jpg");
+
+function buildGround() {
+    var geometry = new THREE.PlaneBufferGeometry(defaultGroundWidth, defaultGroundHeight)
+    var texture = THREE.ImageUtils.loadTexture("images/grass.png");
+    //texture.minFilter = THREE.LinearFilter;
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(500, 500);
+    var material = new THREE.MeshBasicMaterial({map: texture});
+    var mesh = new THREE.Mesh(geometry, material);
+    mesh.position.x = 0;
+    mesh.position.y = 0;
+    mesh.position.z = 0;
+    mesh.rotation.x = -deg2rad(90);
+    return mesh;
+}
+
+function initSky(scene) {
+    var directionalLight = new THREE.DirectionalLight(0x333333, 2);
+    directionalLight.position.set(100, 100, -100);
+    scene.add(directionalLight);
+
+    var hemiLight = new THREE.HemisphereLight(0xaabbff, 0x040404, 1);
+    hemiLight.position.y = 500;
+    scene.add(hemiLight);
+
+    var vertexShader = document.getElementById('vertexShader').textContent;
+    var fragmentShader = document.getElementById('fragmentShader').textContent;
+    var uniforms = {
+        topColor: {type: "c", value: new THREE.Color(0x0077ff)},
+        bottomColor: {type: "c", value: new THREE.Color(0xffffff)},
+        offset: {type: "f", value: 400},
+        exponent: {type: "f", value: 0.6}
+    }
+    uniforms.topColor.value.copy(hemiLight.color);
+
+    scene.fog.color.copy(uniforms.bottomColor.value);
+
+    var skyGeo = new THREE.SphereGeometry(4000, 32, 15);
+    var skyMat = new THREE.ShaderMaterial({
+        uniforms: uniforms,
+        vertexShader: vertexShader,
+        fragmentShader: fragmentShader,
+        side: THREE.BackSide
+    });
+
+    var sky = new THREE.Mesh(skyGeo, skyMat);
+    scene.add(sky);
+}
+
+
+function buildAxes(length) {
+    var axes = new THREE.Object3D();
+    axes.add(buildAxis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(length, 0, 0), 0xFF0000, false)); // +X
+    axes.add(buildAxis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(-length, 0, 0), 0xFF0000, true)); // -X
+    axes.add(buildAxis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, length, 0), 0x00FF00, false)); // +Y
+    axes.add(buildAxis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -length, 0), 0x00FF00, true)); // -Y
+    axes.add(buildAxis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, length), 0x0000FF, false)); // +Z
+    axes.add(buildAxis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -length), 0x0000FF, true)); // -Z
+    return axes;
+}
+
+function buildPost(x, z) {
+    var geometry = new THREE.CylinderGeometry(defaultPostRadius, defaultPostRadius, defaultPostHeight);
+    var material = new THREE.MeshBasicMaterial({map: metalTexture});
+    var mesh = new THREE.Mesh(geometry, material);
+    mesh.position.x = x;
+    mesh.position.y = defaultPostHeight / 2;
+    mesh.position.z = z;
+    return mesh;
+}
+
+function buildAxis(src, dst, colorHex, dashed) {
+    var geom = new THREE.Geometry(),
+            mat;
+
+    if (dashed) {
+        mat = new THREE.LineDashedMaterial({linewidth: 3, color: colorHex, dashSize: 3, gapSize: 3});
+    } else {
+        mat = new THREE.LineBasicMaterial({linewidth: 3, color: colorHex});
+    }
+
+    geom.vertices.push(src.clone());
+    geom.vertices.push(dst.clone());
+    geom.computeLineDistances(); // This one is SUPER important, otherwise dashed lines will appear as simple plain lines
+
+    var axis = new THREE.Line(geom, mat, THREE.LinePieces);
+
+    return axis;
+
+}
+
+function buildPosts() {
+    var posts = new THREE.Object3D();
+    
+    for (var y = -100; y <= 100; y += 10) {
+        for (var z = -100; z <= 100; z += 10) {
+            var postMesh = buildPost(y, z);
+            postMesh.updateMatrix();
+            postMesh.matrixAutoUpdate = false;
+            posts.add(postMesh);
+        }
+    }
+    
+    return posts;
+}
+
+var width = 800, height = 400, element = document.getElementById("rendering");
+var camera, scene, renderer, controls;
+
+init(width, height, element);
+animate();
+
+function init(width, height, element) {
+
+    camera = new THREE.PerspectiveCamera(60, width / height, 1, 10000);
+    camera.position.set(100, 100, 200);
+
+    scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0xffffff, 1000, 10000);
+
+
+    controls = new THREE.OrbitControls(camera);
+    controls.damping = 0.2;
+    controls.addEventListener('change', render);
+    controls.maxPolarAngle = deg2rad(90 - 1); 
+
+    initSky(scene);
+
+    scene.add(buildAxes(10));
+    scene.add(buildGround());
+    scene.add(buildPosts());
+    
+    
+    
+    
+    
+    
+
+    renderer = new THREE.WebGLRenderer({antialias: true});
+    renderer.setClearColor(scene.fog.color);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(width, height);
+    renderer.gammaInput = true;
+    renderer.gammaOutput = true;
+    
+    element.appendChild(renderer.domElement);
+
+    window.addEventListener('resize', function () {
+        onWindowResize(width, height)
+    }, false);
+
+}
+
+function onWindowResize(width, height) {
+
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(width, height);
+
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    //controls.update()
+    render();
+}
+
+function render() {
+    renderer.render(scene, camera);
+}
+        </script>
+        <div id="rendering"></div>
+    </body>
+</html>

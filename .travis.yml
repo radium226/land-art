@@ -1,0 +1,15 @@
+env:
+  global:
+  - secure: "F9pPTcPO1gG0G61MaqGiVrFIW/eIQOtMMtgeoV9sOMelH+Ws5mV7cdEXO9uZ8ImWMN9/35uqF08xXuAhTsh9jVWtgD1gCaVmhAmKgsuQNCsjfboUd+qrBfnBrJEMWZkwkh5GjqlEJuNbqh8JQOmHjW1hTTeoOF6ztp4v6KoZFJk="
+
+install:
+ - true
+
+script:
+- true
+
+after_script:
+- ./deploy.sh
+
+notifications:
+  email: false
