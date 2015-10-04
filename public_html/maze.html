@@ -11,111 +11,517 @@
             }
         </style>
         <script type="text/javascript" src="scripts/paper.js" ></script>
+        <script src="scripts/ancestry.js" type="text/javascript"></script>
         <script type="text/javascript">
+            function shuffle(array) {
+                var counter = array.length, temp, index;
+
+                // While there are elements in the array
+                while (counter > 0) {
+                    // Pick a random index
+                    index = Math.floor(Math.random() * counter);
+
+                    // Decrease counter by 1
+                    counter--;
+
+                    // And swap the last element with it
+                    temp = array[counter];
+                    array[counter] = array[index];
+                    array[index] = temp;
+                }
+
+                return array;
+            }
+    
+            // http://weblog.jamisbuck.org/2010/12/27/maze-generation-recursive-backtracking
+    
             paper.install(window);
             
-            var units = {
-                CM: {
-                    toCM: function(value) {
-                        return value;
+            var Type = {
+                USABLE: true, 
+                UNUSABLE: false
+            }
+            
+            var Direction = function(flag, oppositeFlag) {
+                this.flag = flag;
+                this.oppositeFlag = oppositeFlag;
+            }
+            
+            Direction.prototype = {
+                
+                opposite: function() {
+                    switch (this) {    
+                        case Directions.NORTH: 
+                            return Directions.SOUTH;
+                        case Directions.SOUTH: 
+                            return Directions.NORTH;
+                        case Directions.EAST:
+                            return Directions.WEST;
+                        case Directions.WEST: 
+                            return Directions.EAST;
+                    }
+                },
+                
+                removeFrom: function(array) {
+                    var a = new Array();
+                    for (var i = 0; i < array.length; i++) {
+                        if (array[i] != this) {
+                            a.push(array[i]);
+                        }
+                    }
+                    return a;
+                }, 
+                addTo: function(array) {
+                    var a = array.slice();
+                    a.push(this);
+                    return a;
+                }
+                
+            }
+            
+            var Directions = {
+                NORTH: new Direction(1, 2), 
+                SOUTH: new Direction(2, 1), 
+                EAST: new Direction(4, 8), 
+                WEST: new Direction(8, 4), 
+                all: function() {
+                    return [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST];
+                }, 
+                
+                random: function() {
+                    return shuffle(this.all())[0];
+                }, 
+                
+                none: function() {
+                    return new Array();
+                }
+            }
+            
+            var Wall = function(direction, size) {
+                this.direction = direction;
+                this.size = size;
+            }
+            
+            Wall.prototype = {
+                
+                draw: function(path, coordinates) {
+                    var startPoint = null;
+                    var stopPoint = null;
+                    switch (this.direction) {    
+                        case Directions.NORTH: 
+                            startPoint = new paper.Point(coordinates.x, coordinates.y);
+                            stopPoint = startPoint.add([this.size.width, 0]);
+                            break; 
+                        case Directions.SOUTH: 
+                            startPoint = new paper.Point(coordinates.x, coordinates.y + this.size.height);
+                            stopPoint = startPoint.add([this.size.width, 0]);
+                            break;
+                        case Directions.EAST:
+                            startPoint = new paper.Point(coordinates.x + this.size.width, coordinates.y);
+                            stopPoint = startPoint.add([0, this.size.width]);
+                            break;
+                        case Directions.WEST: 
+                            startPoint = new paper.Point(coordinates.x, coordinates.y);
+                            stopPoint = startPoint.add([0, this.size.width]);
+                            break;
+                    }
+                    
+                    var line = new Path.Line(startPoint, stopPoint);
+                    line.strokeColor = "#00FF00";
+                    line.strokeWidth = 1;
+                    path.add(line)
+                }
+                
+            }
+            
+            var Walls = {
+                
+                all: function(size) {
+                    return [
+                        new Wall(Directions.NORTH, size), 
+                        new Wall(Directions.SOUTH, size), 
+                        new Wall(Directions.EAST, size), 
+                        new Wall(Directions.WEST, size)
+                    ];
+                }
+                
+            }
+            
+            var Cell = function(grid, i, j, size) {
+                this.grid = grid;
+                this.size = size;
+                this.i = i;
+                this.j = j;
+                
+                this.kept = true;
+                
+                this.walls = []; //Walls.all(this.size);
+            }
+            
+            Cell.prototype = {
+                
+                draw: function(path, x, y) {
+                    if (this.kept) {
+                        //////////console.log(x + " / " + y);
+                        for (var i = 0; i < this.walls.length; i++) {
+                            this.walls[i].draw(path, new Coordinates(x, y));
+                        }
+                    } else {
+                        var rectangle = new Path.Rectangle(x, y, this.size.width, this.size.height);
+                        rectangle.fillColor = "#EEEEEE";
+                        path.add(rectangle);
+                    }
+                },
+                
+                neighbour: function(direction) {
+                    var di = 0;
+                    var dj = 0;
+                    switch (direction) {    
+                        case Directions.NORTH: 
+                            dj = -1;
+                            break; 
+                        case Directions.SOUTH: 
+                            dj = +1;
+                            break;
+                        case Directions.EAST:
+                            di = +1;
+                            break;
+                        case Directions.WEST: 
+                            di = -1;
+                            break;
+                    }
+                    var i = this.i + di;
+                    var j = this.j + dj;
+                    
+                    if (i < 0 || j < 0 || i >= this.grid.columnCount || j >= this.grid.rowCount) {
+                        return null;
+                    }
+                    
+                    return this.grid.cellAt(i, j);
+                }, 
+                
+                directions: function() {
+                    var directions = new Array();
+                    var allDirections = Directions.all();
+                    for (var i = 0; i < allDirections.length; i++) {
+                        var direction = allDirections[i];
+                        var neighbourCell = this.neighbour(direction);
+                        if (neighbourCell != null && neighbourCell.kept) {
+                            directions.push(direction);
+                        }
+                    }
+                    return directions;
+                },
+                
+                neighbours: function() {
+                    var allDirections = Directions.all();
+                    var neighbours = new Array();
+                    for (var i = 0; i < allDirections.length; i++) {
+                        if (allDirections[i].kept) {
+                            neighbours.push(this.neighbour(allDirections[i]));
+                        }
+                    }
+                    return neighbours;
+                },
+                
+                toRectangle: function(origin) {
+                    return new Rectangle(origin, this.size);
+                }, 
+                
+                breakWall: function(direction) {
+                    //////////console.log(direction);
+                    this.__removeWall(direction);
+                    var neighbourCell = this.neighbour(direction); 
+                    if (neighbourCell != null) neighbourCell.__removeWall(direction.opposite());
+                }, 
+                
+                buildWall: function(direction) {
+                    this.__addWall(direction);
+                    var neighbourCell = this.neighbour(direction); 
+                            
+                    if (neighbourCell != null) neighbourCell.__addWall(direction.opposite());
+                }, 
+                
+                __addWall: function(direction) {
+                    var add = true;
+                    for (var i = 0; i < this.walls.length; i++) {
+                        var wall = this.walls[i];
+                        if (wall.direction == direction) {
+                            add = false;
+                        }
+                    }
+                    
+                    if (add) {
+                        this.walls.push(new Wall(direction, this.size));
                     }
                 }, 
-                M: {
-                    toCM: function(value) {
-                        return value * 100;
+                
+                __removeWall: function(direction) {
+                    ////////console.log(this.walls);
+                    for (var i = 0; i < this.walls.length; i++) {
+                        var wall = this.walls[i];
+                        if (wall.direction == direction) {
+                            this.walls.splice(i, 1);
+                            break;
+                        }
+                    }
+                    ////////console.log(this.walls);
+                    ////////console.log("----------");
+                }
+                
+            }
+            
+            var Grid = function(width, height, space) {
+                this.columnCount = width / space;
+                this.rowCount = height / space;
+                
+                this.width = width;
+                this.height = height;
+                this.space = space;
+                
+                this.cells = new Array(this.columnCount);
+                
+                for (var i = 0; i < this.columnCount; i++) {
+                    this.cells[i] = new Array(this.rowCount);
+                    for (var j = 0; j < this.rowCount; j++) {
+                        this.cells[i][j] = new Cell(this, i, j, new Size(space, space));
                     }
                 }
-            };
+            }
             
-            var scale = {
-               projection: {
-                   maxRadius: 500 // In px
-               }, 
-               reality: {
-                   maxRadius: (2 + 6 + 6.4) * 100 // In cm
-               }, 
-               point: function(x, y, unit) {
-                   return new Point(this.apply(x, unit), this.apply(y, unit));
-               }, 
-               apply: function(value, unit) {
-                   if (!unit) unit = units.CM;
-                   return unit.toCM(value) * this.projection.maxRadius / this.reality.maxRadius;
-               }
-            };
+            var Circle = function(center, radius) {
+                
+                this.center = center;
+                this.radius = radius;
+                
+            }
             
-            var art = {
-                rings: [
-                    {
-                        minRadius: 2 * 100, 
-                        maxRadius: (2 + 6) * 100
-                    }, 
-                    {
-                        minRadius: (2 + 6) * 100, 
-                        maxRadius: (2 + 6 + 6.4) * 100
+            Circle.prototype = {
+                contains: function(object, lax) {
+                    if (object instanceof Coordinates) return this.__contains(object, lax);
+                    if (object instanceof Rectangle) return this.__containsRectangle(object, lax);
+                },
+                __contains: function(coordinates) {
+                    var k = Math.pow(coordinates.x - this.center.x, 2) + Math.pow(coordinates.y - this.center.y, 2) - Math.pow(this.radius, 2); 
+                    return  k < 0;
+                },
+                __containsRectangle: function(rectangle, lax) {
+                    var points = [
+                        rectangle.origin, 
+                        rectangle.origin.translate(0, rectangle.size.height), 
+                        rectangle.origin.translate(rectangle.size.width, 0), 
+                        rectangle.origin.translate(rectangle.size.width, rectangle.size.height)
+                    ];
+                    
+                    //////////console.log(points);
+                    //////////console.log(rectangle.size);
+                    
+                    if (lax) {
+                        var ok = false;
+                        for (var i = 0; i < points.length; i++) {
+                            if (this.contains(points[i])) {
+                              ok = true;
+                              break;
+                            }
+                        }
+                        return ok;
+                    } else {
+                        var ok = true;
+                        for (var i = 0; i < points.length; i++) {
+                            if (!this.contains(points[i])) {
+                              ok = false;
+                              break;
+                            }
+                        }
+                        return ok;
                     }
-                ]
-            };
+                }, 
+                
+                draw: function(path) {
+                    var circle = new Path.Circle(this.center.x, this.center.y, this.radius);
+                    circle.strokeColor = "#FF0000";
+                    path.add(circle);
+                }
+            }
+            
+            var Coordinates = function(x, y) {
+                this.x = x; 
+                this.y = y;
+            }
+            
+            Coordinates.prototype = {
+                
+                translate: function(width, height) {
+                    return new Coordinates(this.x + width, this.y + height);
+                }
+                
+            }
+            
+            var Size = function(width, height) {
+                this.width = width;
+                this.height = height;
+            }
+            
+            var Rectangle = function(origin, size) {
+                this.origin = origin;
+                this.size = size;
+            }
+            
+            var Ring = function(center, innerRadius, outerRadius) {
+                this.center = center;
+                this.innerRadius = innerRadius;
+                this.outerRadius = outerRadius;
+            }
+            
+            Ring.prototype = {
+                
+                contains: function(object, lax) {
+                    var innerCircle = new Circle(this.center, this.innerRadius);
+                    var outerCircle = new Circle(this.center, this.outerRadius);
+                    //////////console.log(outerCircle);
+                    
+                    return !innerCircle.contains(object, !lax) && outerCircle.contains(object, lax);
+                }, 
+                
+                draw: function(path) {
+                    new Circle(this.center, this.innerRadius).draw(path);
+                    new Circle(this.center, this.outerRadius).draw(path);
+                }
+            }
+            
+            Grid.prototype = {
+                
+                cellAt: function(i, j) {
+                    return this.cells[i][j];
+                }, 
+                
+                draw: function (path, coordinates) {
+                    var rectangle = Path.Rectangle(coordinates.x, coordinates.y, this.width, this.height);
+                    rectangle.strokeColor = "#000000";
+                    rectangle.strokeWidth = 1;
+                    path.add(rectangle);
+                    
+                    for (var i = 0; i < this.columnCount; i++) {
+                        for (var j = 0; j < this.rowCount; j++) {
+                            var cell = this.cellAt(i, j);
+                            //////////console.log(" i = " + i + " /  j = " + j);
+                            cell.draw(path, coordinates.x + i * this.space, coordinates.y + j * this.space);
+                        }
+                    }
+                }, 
+                
+                keepCells: function(coordinates, visitor) {
+                    for (var i = 0; i < this.columnCount; i++) {
+                        for (var j = 0; j < this.rowCount; j++) {
+                            var cell = this.cellAt(i, j);
+                            cell.kept = visitor(coordinates.translate(i * cell.size.width, j * cell.size.height), cell);
+                        }
+                    }
+                }, 
+                
+                buildWalls: function(callback) {
+                    for (var i = 0; i < this.columnCount; i++) {
+                        for (var j = 0; j < this.rowCount; j++) {
+                            var cell = this.cellAt(i, j);
+                            var directions = callback(cell);
+                            for (var k = 0; k < directions.length; k++) {
+                                var direction = directions[k];
+                                cell.buildWall(direction);
+                            }
+                        }
+                    } 
+                }
+                
+            }
+            
+            var Maze = function() {
+                
+            }
+            
+            Maze.prototype = {
+                
+                carve: function(grid) {
+                    var visited = new Array(grid.columnCount);
+                    for (var i = 0; i < grid.columnCount; i++) {
+                        visited[i] = new Array(grid.rowCount);
+                        for (var j = 0; j < grid.rowCount; j++) {
+                            visited[i][j] = false;
+                        }
+                    }
+                    var cell = grid.cellAt(6, 6);
+                    this.__carveFrom(grid, this.__findBeginCell(grid), visited);
+                }, 
+                
+                __carveFrom: function(grid, cell, visited) {
+                    //////console.log(visited);
+                    var directions = shuffle(cell.directions());
+                    ////console.log(directions);
+                    
+                    directions.forEach(function(direction) {
+                        var neighbourCell = cell.neighbour(direction);
+                        
+                        if (!visited[neighbourCell.i][neighbourCell.j]) {
+                            visited[neighbourCell.i][neighbourCell.j] = true;
+                            visited[cell.i][cell.j] = true;
+                            ////console.log(direction);
+                            cell.breakWall(direction);
+                            this.__carveFrom(grid, neighbourCell, visited)
+                        }
+                    }, this);
+                }, 
+                
+                __findBeginCell: function(grid) {
+                    for (var i = 0; i < grid.columnCount; i++) {
+                        for (var j = 0; j < grid.rowCount; j++) {
+                        var cell = grid.cellAt(i, j);    
+                        if (cell.kept) {
+                                return cell;
+                            }
+                        }
+                    }
+                    
+                    
+                }
+                
+            }
+            
+            
             
             window.onload = function() {
-		var canvas = document.getElementById("rendering");
-                width = canvas.style.width;
-                console.log("width = " + width);
+                ////////console.log(new Direction(1,2) == Directions.NORTH)
                 
+                var origin = new Coordinates(0, 0);
+        
+                var canvas = document.getElementById("rendering");
 		paper.setup(canvas);
 		var path = new paper.Path();
-                initCanvas(path);
+                
+                var grid = new Grid(500, 500, 10);
+                var ring = new Ring(origin, 300, 500);
+                grid.keepCells(origin, function(coordinates, cell) {
+                    var rectangle = cell.toRectangle(coordinates);
+                    return ring.contains(rectangle, true);
+                });
+                
+                grid.buildWalls(function(cell) {
+                    return cell.kept ? Directions.all() : Directions.all();
+                })
+                
+                var maze = new Maze();    
+                maze.carve(grid);
+                
+                grid.draw(path, origin);
+        
+                ring.draw(path);
+                
                 paper.view.draw();
             }
             
-            function newPost(x, y, color, unit) {
-                var dot = new Path.Circle(scale.point(x, y, unit), scale.apply(2.5, units.CM));
-                if (!color) color = "black";
-                dot.fillColor = color;
-                return dot;
-            }
-            
             function initCanvas(path) {
-                drawFirstRing(path);
-                drawSecondRing(path);
-            }
-            
-            function __drawRing(path, minRadius, maxRadius, color) {
-                 var minCircle = new Path.Circle(scale.point(0, 0), scale.apply(minRadius));
-                minCircle.strokeColor = color;
-                path.add(minCircle);
                 
-                var maxCircle = new Path.Circle(scale.point(0, 0), scale.apply(maxRadius));
-                maxCircle.strokeColor = color;
-                path.add(maxCircle);
             }
             
-            function drawSecondRing(path) {
-                var minRadius = art.rings[1].minRadius;
-                var maxRadius = art.rings[1].maxRadius;
-                __drawRing(path, minRadius, maxRadius, "#FF0000");
-            }
             
-            function drawFirstRing(path) {
-                var minRadius = art.rings[0].minRadius;
-                var maxRadius = art.rings[0].maxRadius;
-                __drawRing(path, minRadius, maxRadius, "#00FF00");
-                
-                for (var x = 0; x <= maxRadius; x += 15) {
-                    for (var y = 0; y <= maxRadius; y += 15) {
-                        if (isPointInCircle({x: x, y: y}, {center: {x: 0, y:0}, radius: maxRadius}) && !isPointInCircle({x: x, y: y}, {center: {x: 0, y:0}, radius: minRadius})) {
-                            path.add(newPost(x, y));
-                        }
-                    }
-                }
-            }
-            
-            function distanceBetweenPoints(a, b) {
-                return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
-            }
-            
-            function isPointInCircle(point, circle) {
-                return distanceBetweenPoints(circle.center, point) <= circle.radius;
-            }
         </script>
     </head>
     <body>
