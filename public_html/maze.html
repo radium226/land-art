@@ -62,6 +62,36 @@
                     }
                 },
                 
+                mirror: function(axe) {
+                    switch (axe) {
+                        case Axes.HORIZONTAL:
+                            switch (this) {    
+                                case Directions.NORTH: 
+                                    return Directions.SOUTH;
+                                case Directions.SOUTH: 
+                                    return Directions.NORTH;
+                                case Directions.EAST:
+                                    return Directions.EAST;
+                                case Directions.WEST: 
+                                    return Directions.WEST;
+                            }
+                            break;
+                        case Axes.VERTICAL:
+                            switch (this) {    
+                                case Directions.NORTH: 
+                                    return Directions.NORTH;
+                                case Directions.SOUTH: 
+                                    return Directions.SOUTH;
+                                case Directions.EAST:
+                                    return Directions.WEST;
+                                case Directions.WEST: 
+                                    return Directions.EAST;
+                            }
+                            break;
+                    }
+                    
+                },
+                
                 removeFrom: function(array) {
                     var a = new Array();
                     for (var i = 0; i < array.length; i++) {
@@ -130,6 +160,10 @@
                     line.strokeColor = "#00FF00";
                     line.strokeWidth = 1;
                     path.add(line)
+                }, 
+                
+                mirror: function(axe) {
+                    return new Wall(this.direction.mirror(axe), this.size);
                 }
                 
             }
@@ -146,6 +180,11 @@
                 }
                 
             }
+            
+            var Axes = {
+                HORIZONTAL: 1, 
+                VERTICAL: 2
+            };
             
             var Cell = function(grid, i, j, size) {
                 this.grid = grid;
@@ -430,6 +469,30 @@
                             }
                         }
                     } 
+                }, 
+                
+                mirror: function(axe) {
+                    var mirroredGrid = new Grid(this.width, this.height, this.space);
+                    for (var i = 0; i < this.columnCount; i++) {
+                        for (var j = 0; j < this.rowCount; j++) {
+                            var cell;
+                            switch (axe) {
+                                case Axes.HORIZONTAL: 
+                                    cell = new Cell(mirroredGrid, i , this.rowCount - j - 1, new Size(this.space, this.space));
+                                    mirroredGrid.cells[i][this.rowCount - j - 1] = cell;
+                                    break;
+                                case Axes.VERTICAL:
+                                    cell = new Cell(mirroredGrid, this.columnCount -i - 1, j, new Size(this.space, this.space));
+                                    mirroredGrid.cells[this.columnCount -i - 1][j] = cell;
+                                    break;
+                            }
+                            cell.kept = this.cells[i][j].kept;
+                            cell.walls = this.cells[i][j].walls.map(function(wall) { return wall.mirror(axe); });
+                            console.log(cell.walls);
+                            console.log(cell.size);
+                        }
+                    }
+                    return mirroredGrid;
                 }
                 
             }
@@ -496,7 +559,7 @@
 		paper.setup(canvas);
 		var path = new paper.Path();
                 
-                var grid = new Grid(500, 500, 10);
+                var grid = new Grid(500, 500, 50);
                 var ring = new Ring(origin, 300, 500);
                 grid.keepCells(origin, function(coordinates, cell) {
                     var rectangle = cell.toRectangle(coordinates);
@@ -510,7 +573,7 @@
                 var maze = new Maze();    
                 maze.carve(grid);
                 
-                grid.draw(path, origin);
+                grid.mirror(Axes.HORIZONTAL).draw(path, origin);
         
                 ring.draw(path);
                 
