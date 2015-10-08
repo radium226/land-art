@@ -20,6 +20,7 @@
     <body>
         <script type="text/javascript" src="scripts/Three.js"></script>
         <script type="text/javascript" src="scripts/OrbitControls.js"></script>
+        <script src="scripts/land-art.js" type="text/javascript"></script>
         <div id="rendering"></div>
         <script type="x-shader/x-vertex" id="vertexShader">
             varying vec3 vWorldPosition;
@@ -43,6 +44,85 @@
             }
         </script>
         <script type="text/javascript">
+            function randomGrid() {
+                var origin = new Coordinates(0, 0);
+                
+                var northEastGrid = new Grid(100, 100, 10);
+                var ring = new Ring(origin, 75, 100);
+                northEastGrid.keepCells(origin, function(coordinates, cell) {
+                    var rectangle = cell.toRectangle(coordinates);
+                    return ring.contains(rectangle, true);
+                });
+                
+                northEastGrid.buildWalls(function(cell) {
+                    return cell.kept ? Directions.all() : Directions.all();
+                })
+                
+                var maze = new Maze();    
+                maze.carve(northEastGrid);
+                
+                var southEastGrid = northEastGrid.mirror(Axes.HORIZONTAL);
+                var eastGrid = northEastGrid.assemble(southEastGrid, Directions.SOUTH);
+                var westGrid = eastGrid.mirror(Axes.VERTICAL);
+                var grid = eastGrid.assemble(westGrid, Directions.WEST);
+        
+                return grid;
+            }
+            
+            function gridToObject3D(grid) {
+                var grid3D = new THREE.Object3D();
+                for (var i = 0; i < grid.columnCount; i++) {
+                    for (var j = 0; j < grid.rowCount; j++) {
+                        var cell = grid.cellAt(i, j);
+                        if (cell.kept) {
+                            for (var k = 0; k < cell.walls.length; k++) {
+                                var wall = cell.walls[k];
+                                var wall3D = wallToObject3D(wall, i * 10, j * 10); 
+                                grid3D.add(wall3D);
+                            }
+                        }
+                    }
+                }
+                return grid3D;
+            }
+            
+            function wallToObject3D(wall, i, j) {
+                var object3D = new THREE.Object3D();
+                switch (wall.direction) {
+                    case Directions.NORTH: 
+                        object3D.add(buildPost(i + 0, j + 0));
+                        object3D.add(buildPost(i + 2.5, j + 0));
+                        object3D.add(buildPost(i + 5, j + 0));
+                        object3D.add(buildPost(i + 7.5, j + 0));
+                        object3D.add(buildPost(i + 10, j + 0));
+                        break;
+                    case Directions.SOUTH:
+                        object3D.add(buildPost(i + 0, j + 10));
+                        object3D.add(buildPost(i + 2.5, j + 10));
+                        object3D.add(buildPost(i + 5, j + 10));
+                        object3D.add(buildPost(i + 7.5, j + 10));
+                        object3D.add(buildPost(i + 1, j + 10));
+                        break;
+                    
+                    case Directions.EAST:
+                        object3D.add(buildPost(i + 0, j + 0));
+                        object3D.add(buildPost(i + 0, j + 2.5));
+                        object3D.add(buildPost(i + 0, j + 5));
+                        object3D.add(buildPost(i + 0, j + 7.5));
+                        object3D.add(buildPost(i + 0, j + 10));
+                        break;
+                    case Directions.WEST:
+                        object3D.add(buildPost(i + 10, j + 0));
+                        object3D.add(buildPost(i + 10, j + 2.5));
+                        object3D.add(buildPost(i + 10, j + 5));
+                        object3D.add(buildPost(i + 10, j + 7.5));
+                        object3D.add(buildPost(i + 10, j + 10));
+                        break;
+                }
+                return object3D;
+            }
+            
+            
 function deg2rad(angle) {
     return (angle / 180) * Math.PI;
 }
@@ -183,7 +263,7 @@ function init(width, height, element) {
 
     scene.add(buildAxes(10));
     scene.add(buildGround());
-    scene.add(buildPosts());
+    scene.add(gridToObject3D(randomGrid()));
     
     
     
