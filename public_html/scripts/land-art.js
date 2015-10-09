@@ -179,6 +179,12 @@ var Axes = {
     VERTICAL: 2
 };
 
+var Flags = {
+    NONE: 0, 
+    MAZE: 2, 
+    ROUND: 4
+}
+
 var Cell = function(grid, i, j, size) {
     this.grid = grid;
     this.size = size;
@@ -186,15 +192,77 @@ var Cell = function(grid, i, j, size) {
     this.j = j;
 
     this.kept = true;
+    
+    this.flag = Flags.NONE;
 
     this.walls = []; //Walls.all(this.size);
 }
 
 Cell.prototype = {
+   
+    isFlaggedWith: function(flag) {
+        return (this.flag & flag) == flag;
+    },
+   
+    split: function(grid, times) {
+        // Let's initialize the cells
+        var cells = new Array(times); 
+        for (var i = 0; i < times; i++) {
+            cells[i] = new Array(times);
+            for (var j = 0; j < times; j++) {
+                cells[i][j] = new Cell(grid, this.i * times + i, this.j * times + j, this.size.divide(times));
+                cells[i][j].kept = this.kept;
+                cells[i][j].walls = [];
+                cells[i][j].flag = this.flag;
+            }
+        }
+        
+        if (this.kept) {
+            for (var k = 0; k < this.walls.length; k++) {
+                var wall = this.walls[k];
+                //console.log(wall);
+                var direction = wall.direction;
+                switch (direction) {
+                    case Directions.NORTH: 
+                        for (var i = 0; i < times; i++) {
+                            cells[i][0].__addWall(Directions.NORTH);
+                        }
+                        break;
+                    case Directions.SOUTH:
+                        for (var i = 0; i < times; i++) {
+                            cells[i][times - 1].__addWall(Directions.SOUTH);
+                        }
+                        break;
+                        
+                    case Directions.EAST: 
+                        for (var j = 0; j < times; j++) {
+                            cells[times - 1][j].__addWall(Directions.EAST);
+                        }
+                        break;
+                    case Directions.WEST:
+                        for (var j = 0; j < times; j++) {
+                            cells[0][j].__addWall(Directions.WEST);
+                        }
+                        break;
+                }
+            }
+            
+            for (var i = 1; i < times - 1; i++) {
+                for (var j = 1; j < times - 1; j++) {
+                    cells[i][j].walls = [];
+                }
+            }
+        } else {
+            
+        }
+        
+        //console.log(cells);
+        return cells;
+    },
 
     draw: function(path, x, y) {
         if (this.kept) {
-            ////////////console.log(x + " / " + y);
+            //////////////console.log(x + " / " + y);
             for (var i = 0; i < this.walls.length; i++) {
                 this.walls[i].draw(path, new Coordinates(x, y));
             }
@@ -261,7 +329,7 @@ Cell.prototype = {
     }, 
 
     breakWall: function(direction) {
-        ////////////console.log(direction);
+        //////////////console.log(direction);
         this.__removeWall(direction);
         var neighbourCell = this.neighbour(direction); 
         if (neighbourCell != null) neighbourCell.__removeWall(direction.opposite());
@@ -289,7 +357,7 @@ Cell.prototype = {
     }, 
 
     __removeWall: function(direction) {
-        //////////console.log(this.walls);
+        ////////////console.log(this.walls);
         for (var i = 0; i < this.walls.length; i++) {
             var wall = this.walls[i];
             if (wall.direction == direction) {
@@ -297,8 +365,18 @@ Cell.prototype = {
                 break;
             }
         }
-        //////////console.log(this.walls);
-        //////////console.log("----------");
+        ////////////console.log(this.walls);
+        ////////////console.log("----------");
+    }, 
+    
+    hasWall: function(direction) {
+        for (var k = 0; k < this.walls.length; k++) {
+            if (this.walls[k].direction == direction) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
 }
@@ -338,7 +416,7 @@ Circle.prototype = {
         return  k < 0;
     },
     __containsRectangle: function(rectangle, lax) {
-        console.log(rectangle);
+        //console.log(rectangle);
         var points = [
             rectangle.origin, 
             rectangle.origin.translate(0, rectangle.size.height), 
@@ -346,8 +424,8 @@ Circle.prototype = {
             rectangle.origin.translate(rectangle.size.width, rectangle.size.height)
         ];
 
-        ////////////console.log(points);
-        ////////////console.log(rectangle.size);
+        //////////////console.log(points);
+        //////////////console.log(rectangle.size);
 
         if (lax) {
             var ok = false;
@@ -395,6 +473,15 @@ var Size = function(width, height) {
     this.height = height;
 }
 
+Size.prototype = {
+    
+    divide: function(times) {
+        return new Size(this.width / times, this.height / times);
+    }
+    
+}
+
+
 var Rectangle = function(origin, size) {
     this.origin = origin;
     this.size = size;
@@ -411,7 +498,7 @@ Ring.prototype = {
     contains: function(object, lax) {
         var innerCircle = new Circle(this.center, this.innerRadius);
         var outerCircle = new Circle(this.center, this.outerRadius);
-        ////////////console.log(outerCircle);
+        //////////////console.log(outerCircle);
 
         return !innerCircle.contains(object, !lax) && outerCircle.contains(object, lax);
     }, 
@@ -423,7 +510,40 @@ Ring.prototype = {
 }
 
 Grid.prototype = {
-
+    
+    split: function(times) {
+        var splitGrid = new Grid(this.width, this.height, this.space / times)
+        for (var i = 0; i < this.columnCount; i++) {
+            for (var j = 0; j < this.rowCount; j++) {
+                var splitCells = this.cellAt(i, j).split(splitGrid, times);
+                for (var a = 0; a < times; a++) {
+                    for (var b = 0; b < times; b++) {
+                        //console.log(splitCells[a][b].walls);
+                        splitGrid.cells[i * times + a][j * times + b] = splitCells[a][b];
+                    }
+                }
+            }
+        }
+        return splitGrid;
+    }, 
+    
+    optimizeWalls: function() {
+        for (var i = 0; i < this.columnCount; i++) {
+            for (var j = 0; j < this.rowCount; j++) {
+                var cell = this.cellAt(i, j);
+                var northNeighbour = cell.neighbour(Directions.NORTH);
+                if (northNeighbour != null && northNeighbour.kept && northNeighbour.hasWall(Directions.SOUTH)) {
+                    cell.__removeWall(Direction.NORTH);
+                }
+                
+                var westNeighbour = cell.neighbour(Directions.WEST);
+                if (westNeighbour != null && westNeighbour.kept && westNeighbour.hasWall(Directions.EAST)) {
+                    cell.__removeWall(Direction.WEST);
+                }
+            }
+        }
+    },
+    
     cellAt: function(i, j) {
         return this.cells[i][j];
     }, 
@@ -437,7 +557,7 @@ Grid.prototype = {
         for (var i = 0; i < this.columnCount; i++) {
             for (var j = 0; j < this.rowCount; j++) {
                 var cell = this.cellAt(i, j);
-                ////////////console.log(" i = " + i + " /  j = " + j);
+                //////////////console.log(" i = " + i + " /  j = " + j);
                 cell.draw(path, coordinates.x + i * this.space, coordinates.y + j * this.space);
             }
         }
@@ -457,13 +577,27 @@ Grid.prototype = {
             for (var j = 0; j < this.rowCount; j++) {
                 var cell = this.cellAt(i, j);
                 var directions = callback(cell);
-                for (var k = 0; k < directions.length; k++) {
-                    var direction = directions[k];
-                    cell.buildWall(direction);
+                if (directions != null) {
+                    for (var k = 0; k < directions.length; k++) {
+                        var direction = directions[k];
+                        cell.buildWall(direction);
+                    }
                 }
             }
         } 
     }, 
+
+    flagCells: function(coordinates, callback) {
+        for (var i = 0; i < this.columnCount; i++) {
+            for (var j = 0; j < this.rowCount; j++) {
+                var cell = this.cellAt(i, j);
+                var flag = callback(coordinates.translate(i * cell.size.width, j * cell.size.height), cell);
+                if (flag != null) {
+                    cell.flag = flag;
+                }
+            }
+        }
+    },
 
     mirror: function(axe) {
         var mirroredGrid = new Grid(this.width, this.height, this.space);
@@ -482,8 +616,8 @@ Grid.prototype = {
                 }
                 cell.kept = this.cells[i][j].kept;
                 cell.walls = this.cells[i][j].walls.map(function(wall) { return wall.mirror(axe); });
-                //console.log(cell.walls);
-                //console.log(cell.size);
+                ////console.log(cell.walls);
+                ////console.log(cell.size);
             }
         }
         return mirroredGrid;
@@ -579,9 +713,10 @@ Maze.prototype = {
     }, 
 
     __carveFrom: function(grid, cell, visited) {
-        ////////console.log(visited);
+        cell.flag = Flags.MAZE;
+        //////////console.log(visited);
         var directions = shuffle(cell.directions());
-        //////console.log(directions);
+        ////////console.log(directions);
 
         directions.forEach(function(direction) {
             var neighbourCell = cell.neighbour(direction);
@@ -589,7 +724,7 @@ Maze.prototype = {
             if (!visited[neighbourCell.i][neighbourCell.j]) {
                 visited[neighbourCell.i][neighbourCell.j] = true;
                 visited[cell.i][cell.j] = true;
-                //////console.log(direction);
+                ////////console.log(direction);
                 cell.breakWall(direction);
                 this.__carveFrom(grid, neighbourCell, visited)
             }

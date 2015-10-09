@@ -1,0 +1,22 @@
+<html>
+    <head>
+        <script>
+            var Flags = {
+                A: 2, 
+                B: 4, 
+                C: 16
+            }
+            
+            function isFlaggedWith(flags, flag) {
+                return (flags & flag) == flag;
+            }
+            
+            alert(isFlaggedWith(Flags.A | Flags.B, Flags.A));
+            alert(isFlaggedWith(Flags.A | Flags.B, Flags.B));
+            alert(isFlaggedWith(Flags.A | Flags.B, Flags.C));
+        </script>
+    </head>
+    <body>
+        
+    </body>
+</html>

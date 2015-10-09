@@ -46,12 +46,12 @@
         <script type="text/javascript">
             function randomGrid() {
                 var origin = new Coordinates(0, 0);
-                
+        
                 var northEastGrid = new Grid(100, 100, 10);
-                var ring = new Ring(origin, 75, 100);
+                var ring = new Ring(origin, 50, 100);
                 northEastGrid.keepCells(origin, function(coordinates, cell) {
                     var rectangle = cell.toRectangle(coordinates);
-                    return ring.contains(rectangle, true);
+                    return ring.contains(rectangle, false);
                 });
                 
                 northEastGrid.buildWalls(function(cell) {
@@ -61,15 +61,40 @@
                 var maze = new Maze();    
                 maze.carve(northEastGrid);
                 
+                northEastGrid = northEastGrid.split(3);
+                
+                northEastGrid.keepCells(origin, function(coordinates, cell) {
+                    var rectangle = cell.toRectangle(coordinates);
+                    return ring.contains(rectangle, false);
+                });
+                northEastGrid.flagCells(origin, function(coordinates, cell) {
+                    var rectangle = cell.toRectangle(coordinates);
+                    if (ring.contains(rectangle, false)) {
+                        if (!cell.isFlaggedWith(Flags.MAZE)) {
+                            return Flags.ROUND;
+                        }
+                    }
+                    
+                    return null; 
+                });
+                
+                northEastGrid.buildWalls(function(cell) {
+                    if (!cell.isFlaggedWith(Flags.MAZE) && cell.isFlaggedWith(Flags.ROUND)) {
+                        return Directions.all();
+                    } else {
+                        return null; 
+                    }
+                });
+                
                 var southEastGrid = northEastGrid.mirror(Axes.HORIZONTAL);
                 var eastGrid = northEastGrid.assemble(southEastGrid, Directions.SOUTH);
                 var westGrid = eastGrid.mirror(Axes.VERTICAL);
                 var grid = eastGrid.assemble(westGrid, Directions.WEST);
-        
+                grid.optimizeWalls();
                 return grid;
             }
             
-            function gridToObject3D(grid) {
+            function gridToObject3D(grid, space) {
                 var grid3D = new THREE.Object3D();
                 for (var i = 0; i < grid.columnCount; i++) {
                     for (var j = 0; j < grid.rowCount; j++) {
@@ -77,7 +102,7 @@
                         if (cell.kept) {
                             for (var k = 0; k < cell.walls.length; k++) {
                                 var wall = cell.walls[k];
-                                var wall3D = wallToObject3D(wall, i * 10, j * 10); 
+                                var wall3D = wallToObject3D(wall, i * space, j * space, space); 
                                 grid3D.add(wall3D);
                             }
                         }
@@ -86,37 +111,25 @@
                 return grid3D;
             }
             
-            function wallToObject3D(wall, i, j) {
+            function wallToObject3D(wall, i, j, space) {
                 var object3D = new THREE.Object3D();
                 switch (wall.direction) {
                     case Directions.NORTH: 
                         object3D.add(buildPost(i + 0, j + 0));
-                        object3D.add(buildPost(i + 2.5, j + 0));
-                        object3D.add(buildPost(i + 5, j + 0));
-                        object3D.add(buildPost(i + 7.5, j + 0));
-                        object3D.add(buildPost(i + 10, j + 0));
+                        object3D.add(buildPost(i + space, j + 0));
                         break;
                     case Directions.SOUTH:
-                        object3D.add(buildPost(i + 0, j + 10));
-                        object3D.add(buildPost(i + 2.5, j + 10));
-                        object3D.add(buildPost(i + 5, j + 10));
-                        object3D.add(buildPost(i + 7.5, j + 10));
-                        object3D.add(buildPost(i + 1, j + 10));
+                        object3D.add(buildPost(i + 0, j + space));
+                        object3D.add(buildPost(i + space, j + space));
                         break;
                     
                     case Directions.EAST:
                         object3D.add(buildPost(i + 0, j + 0));
-                        object3D.add(buildPost(i + 0, j + 2.5));
-                        object3D.add(buildPost(i + 0, j + 5));
-                        object3D.add(buildPost(i + 0, j + 7.5));
-                        object3D.add(buildPost(i + 0, j + 10));
+                        object3D.add(buildPost(i + 0, j + space));
                         break;
                     case Directions.WEST:
-                        object3D.add(buildPost(i + 10, j + 0));
-                        object3D.add(buildPost(i + 10, j + 2.5));
-                        object3D.add(buildPost(i + 10, j + 5));
-                        object3D.add(buildPost(i + 10, j + 7.5));
-                        object3D.add(buildPost(i + 10, j + 10));
+                        object3D.add(buildPost(i + space, j + 0));
+                        object3D.add(buildPost(i + space, j + space));
                         break;
                 }
                 return object3D;
@@ -263,7 +276,7 @@ function init(width, height, element) {
 
     scene.add(buildAxes(10));
     scene.add(buildGround());
-    scene.add(gridToObject3D(randomGrid()));
+    scene.add(gridToObject3D(randomGrid(), 5));
     
     
     

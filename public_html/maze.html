@@ -16,7 +16,7 @@
         <script type="text/javascript">
             
             window.onload = function() {
-                //////////console.log(new Direction(1,2) == Directions.NORTH)
+                //////////////console.log(new Direction(1,2) == Directions.NORTH)
                 //paper.install(window);
                 var origin = new Coordinates(0, 0);
         
@@ -26,10 +26,10 @@
 		var path = new paper.Path();
                 
                 var northEastGrid = new Grid(100, 100, 10);
-                var ring = new Ring(origin, 75, 100);
+                var ring = new Ring(origin, 50, 100);
                 northEastGrid.keepCells(origin, function(coordinates, cell) {
                     var rectangle = cell.toRectangle(coordinates);
-                    return ring.contains(rectangle, true);
+                    return ring.contains(rectangle, false);
                 });
                 
                 northEastGrid.buildWalls(function(cell) {
@@ -39,11 +39,39 @@
                 var maze = new Maze();    
                 maze.carve(northEastGrid);
                 
-                var southEastGrid = northEastGrid.mirror(Axes.HORIZONTAL);
-                var eastGrid = northEastGrid.assemble(southEastGrid, Directions.SOUTH);
-                var westGrid = eastGrid.mirror(Axes.VERTICAL);
-                var grid = eastGrid.assemble(westGrid, Directions.WEST);
-        
+                northEastGrid = northEastGrid.split(2);
+                
+                northEastGrid.keepCells(origin, function(coordinates, cell) {
+                    var rectangle = cell.toRectangle(coordinates);
+                    return ring.contains(rectangle, false);
+                });
+                northEastGrid.flagCells(origin, function(coordinates, cell) {
+                    var rectangle = cell.toRectangle(coordinates);
+                    if (ring.contains(rectangle, false)) {
+                        if (!cell.isFlaggedWith(Flags.MAZE)) {
+                            return Flags.ROUND;
+                        }
+                    }
+                    
+                    return null; 
+                });
+                
+                northEastGrid.buildWalls(function(cell) {
+                    if (!cell.isFlaggedWith(Flags.MAZE) && cell.isFlaggedWith(Flags.ROUND)) {
+                        return Directions.all();
+                    } else {
+                        return null; 
+                    }
+                });
+                
+                //var southEastGrid = northEastGrid.mirror(Axes.HORIZONTAL);
+                //var eastGrid = northEastGrid.assemble(southEastGrid, Directions.SOUTH);
+                //var westGrid = eastGrid.mirror(Axes.VERTICAL);
+                var grid = northEastGrid//eastGrid.assemble(westGrid, Directions.WEST);
+                
+                
+                
+                grid.optimizeWalls();
                 grid.draw(path, origin);
         
                 //ring.draw(path);
