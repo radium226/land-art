@@ -39,6 +39,8 @@
                 var maze = new Maze();    
                 maze.carve(northEastGrid);
                 
+                northEastGrid.breakRandomWall(Directions.NORTH);
+                northEastGrid.breakRandomWall(Directions.WEST);
                 northEastGrid = northEastGrid.split(2);
                 
                 northEastGrid.keepCells(origin, function(coordinates, cell) {
@@ -64,11 +66,12 @@
                     }
                 });
                 
-                //var southEastGrid = northEastGrid.mirror(Axes.HORIZONTAL);
-                //var eastGrid = northEastGrid.assemble(southEastGrid, Directions.SOUTH);
-                //var westGrid = eastGrid.mirror(Axes.VERTICAL);
-                var grid = northEastGrid//eastGrid.assemble(westGrid, Directions.WEST);
                 
+                
+                var southEastGrid = northEastGrid.mirror(Axes.HORIZONTAL);
+                var eastGrid = northEastGrid.assemble(southEastGrid, Directions.SOUTH);
+                var westGrid = eastGrid.mirror(Axes.VERTICAL);
+                var grid = eastGrid.assemble(westGrid, Directions.WEST);
                 
                 
                 grid.optimizeWalls();

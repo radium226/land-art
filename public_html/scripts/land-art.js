@@ -149,10 +149,20 @@ Wall.prototype = {
                 break;
         }
 
-        var line = new paper.Path.Line(startPoint, stopPoint);
+        /*var line = new paper.Path.Line(startPoint, stopPoint);
         line.strokeColor = "#00FF00";
         line.strokeWidth = 1;
-        path.add(line)
+        path.add(line);*/
+                        
+                        
+        var startCircle = new paper.Path.Circle(startPoint.x, startPoint.y, 1);
+        startCircle.strokeWidth = 1;
+        startCircle.fillColor = "#FF0000";
+        var stopCircle = new paper.Path.Circle(stopPoint.x, stopPoint.y, 1);
+        stopCircle.strokeWidth = 1;
+        stopCircle.fillColor = "#FF0000";
+        path.add(startCircle);
+        path.add(stopCircle);
     }, 
 
     mirror: function(axe) {
@@ -510,6 +520,33 @@ Ring.prototype = {
 }
 
 Grid.prototype = {
+    
+    breakRandomWall: function(direction) {
+        var eligibleCells = new Array();
+        switch (direction) {
+            case Directions.NORTH: 
+                for (var i = 0; i < this.columnCount; i++) {
+                    var cell = this.cellAt(i, 0);
+                    if (cell.kept) {
+                        eligibleCells.push(cell);
+                    }
+                }
+                var cell = shuffle(eligibleCells)[0];
+                cell.breakWall(Directions.NORTH);
+                break;
+            case Directions.WEST: 
+                for (var j = 0; j < this.rowCount; j++) {
+                    var cell = this.cellAt(0, j);
+                    if (cell.kept) {
+                        eligibleCells.push(cell);
+                    }
+                }
+                var cell = shuffle(eligibleCells)[0];
+                console.log(cell);
+                cell.breakWall(Directions.WEST);
+                break;
+        }
+    },
     
     split: function(times) {
         var splitGrid = new Grid(this.width, this.height, this.space / times)
