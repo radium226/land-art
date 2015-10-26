@@ -192,7 +192,8 @@ var Axes = {
 var Flags = {
     NONE: 0, 
     MAZE: 2, 
-    ROUND: 4
+    ROUND: 4, 
+    RANDOM: 16
 }
 
 var Cell = function(grid, i, j, size) {
@@ -205,13 +206,19 @@ var Cell = function(grid, i, j, size) {
     
     this.flag = Flags.NONE;
 
-    this.walls = []; //Walls.all(this.size);
+    //this.walls = []; //Walls.all(this.size);
+    
+    this.posts = [];
 }
 
 Cell.prototype = {
    
     isFlaggedWith: function(flag) {
         return (this.flag & flag) == flag;
+    },
+    
+    flagWith: function(flag) {
+        return this.flag | flag
     },
    
     split: function(grid, times) {
@@ -283,22 +290,26 @@ Cell.prototype = {
         }
     },
 
-    neighbour: function(direction) {
+    neighbour: function() {
         var di = 0;
         var dj = 0;
-        switch (direction) {    
-            case Directions.NORTH: 
-                dj = -1;
-                break; 
-            case Directions.SOUTH: 
-                dj = +1;
-                break;
-            case Directions.EAST:
-                di = +1;
-                break;
-            case Directions.WEST: 
-                di = -1;
-                break;
+        
+        for (var k = 0; k < arguments.length; k++) {
+            var direction = arguments[k];
+            switch (direction) {    
+                case Directions.NORTH: 
+                    dj = -1;
+                    break; 
+                case Directions.SOUTH: 
+                    dj = +1;
+                    break;
+                case Directions.EAST:
+                    di = +1;
+                    break;
+                case Directions.WEST: 
+                    di = -1;
+                    break;
+            }
         }
         var i = this.i + di;
         var j = this.j + dj;
@@ -387,9 +398,48 @@ Cell.prototype = {
         }
         
         return false;
+    }, 
+    
+    
+    /*
+     * 
+     * --+--+--+--
+     *   |  |  |
+     * --+--+--+--
+     *   |  |  |
+     * --+--+--+--
+     *   |  |  |
+     * --+--+--+--     
+     * 
+     * 
+     * 
+     */
+    
+    hammerPost: function(horizontalDirection, verticalDirection) {
+        this.__addPost(horizontalDirection, verticalDirection);
+        var neighbourCell = 
+    }, 
+    
+    __addPost: function(horizontalDirection, verticalDirection) {
+        var add = true;
+        for (var i = 0; i < this.posts.length; i++) {
+            var post = this.post[i];
+            if (post.horizontalDirection == horizontalDirection && post.verticalDirection == verticalDirection) {
+                add = false;
+            }
+        }
+
+        if (add) {
+            this.posts.push(new Post(horizontalDirection, verticalDirection));
+        }
     }
 
-}
+};
+
+var Post = function(horizontalDirection, verticalDirection) {
+   this.horizontalDirection = horizontalDirection;
+   this.verticalDirection = verticalDirection; 
+};
 
 var Grid = function(width, height, space) {
     this.columnCount = width / space;
