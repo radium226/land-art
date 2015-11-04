@@ -34,6 +34,12 @@ define(['underscore', 'art/direction'], function(_, Direction) {
                 });
             }
             return mirroredDirection;           
+        }, 
+        
+        perpendicular: function() {
+            return _.find(Axis.all(), function(that) {
+                return !this.isEqualTo(that);
+            }, this);
         }
         
     };

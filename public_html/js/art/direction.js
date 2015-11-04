@@ -18,6 +18,14 @@ define(['underscore'], function(_) {
             return axis.isDefinedBy(this);
         }, 
         
+        axis: function() {
+            var Axis = require('art/axis');
+            
+            return _.find(Axis.all(), function(axis) {
+                return axis.isDefinedBy(this);
+            }, this);
+        }, 
+        
         opposite: function() {
             var Axis = require('art/axis'); // Pour gérer les dépendances circulaires. 
             
@@ -40,6 +48,16 @@ define(['underscore'], function(_) {
     
     Direction.all = function() {
         return [Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST];
+    };
+    
+    Direction.complementary = function(directions) {
+        var complementaryDirections = _.reject(Direction.all(), function(oneDirection) {
+            return !_.isUndefined(_.find(directions, function(otherDirection) {
+                return oneDirection.isEqualTo(otherDirection);
+            }));
+        });
+        
+        return complementaryDirections;
     };
     
     return Direction;
