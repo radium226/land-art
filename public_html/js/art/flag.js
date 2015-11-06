@@ -4,7 +4,7 @@ define([], function() {
     
     var Flag = function(value) {
         this.__value = value;
-    }
+    };
     
     Flag.NONE = new Flag(0);        // 0000000
     
@@ -17,7 +17,7 @@ define([], function() {
     Flag.FOO = new Flag(32);        // 0010000
     Flag.BAR = new Flag(64);        // 0100000
     
-    Flag.IN_CIRCLE = new Flag(128); // 1000000
-    
+    Flag.MAZE = new Flag(128); // 1000000
+    Flag.FOREST = new Flag(256);
     return Flag;
 });

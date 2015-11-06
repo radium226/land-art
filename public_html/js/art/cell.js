@@ -105,7 +105,7 @@ define(['underscore', 'paper', 'art/flags', 'art/size', 'art/config', 'art/posit
             path.add(rectangle);*/
             
             _.map(walls, function(wall) {
-                wall.drawAt(path, config, point)
+                wall.drawAt(path, config, point);
             }, this);
         }, 
         

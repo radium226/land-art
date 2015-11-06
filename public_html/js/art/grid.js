@@ -66,6 +66,14 @@ define(['underscore', 'paper', 'art/post', 'art/cell', 'art/position', 'art/dire
             });
         }, 
         
+        filterAndVisitPosts: function(predicate, callback) {
+            this.visitPosts(function(post) {
+                if (predicate(post)) {
+                    callback(post);
+                }
+            });
+        },
+        
         filterAndVisitCells: function(predicate, callback) {
             this.visitCells(function(cell) {
                 if (predicate(cell)) {

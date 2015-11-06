@@ -15,14 +15,18 @@ define(['underscore', 'art/size', 'art/flag', 'paper'], function(_, Size, Flag, 
             var circle = new paper.Path.Circle(centerPoint, radius);
             return circle;
         }, this);
+        
+        this.modify = function(that) {
+            return _.extend(this, that);
+        };
     };
     
     Config.prototype = {
         cell: {
-            size: new Size(20, 20), 
+            size: new Size(10, 10), 
             shape: function(shape, cell) {
-                shape.strokeColor = "#EEEEEE";
-                shape.strokeWidth = 1;
+                /*shape.strokeColor = "#EEEEEE";
+                shape.strokeWidth = 1;*/
             }
         }, 
         grid: {
@@ -35,7 +39,7 @@ define(['underscore', 'art/size', 'art/flag', 'paper'], function(_, Size, Flag, 
         }, 
         wall: {
             shape: function(shape, wall) {
-                if (wall.cell.flags.isSet(Flag.IN_CIRCLE)) {
+                /*if (wall.cell.flags.isSet(Flag.MAZE)) {
                     shape.strokeColor = "#00FF00";
                     shape.strokeWidth = 1;
                 } else {
@@ -43,16 +47,18 @@ define(['underscore', 'art/size', 'art/flag', 'paper'], function(_, Size, Flag, 
                     shape.strokeWidth = 1;
                     shape.strokeCap = 'round';
                     shape.dashArray = [2, 2];
-                }
+                }*/
             }
         }, 
         post: {
             shape: function(shape, post) {
                 if (post.isAdded()) {
-                    shape.fillColor = "#FF0000";
-                } else {
+                    if (post.flags.isSet(Flag.MAZE) || post.flags.isSet(Flag.FOREST)) {
+                        shape.fillColor = "#FF0000";
+                    }
+                }/* else {
                     shape.fillColor = "#FFCCCC";
-                }
+                }*/
             }, 
             radius: 2
         }, 
