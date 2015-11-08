@@ -1,6 +1,6 @@
 "use strict";
 
-define(['underscore', 'paper', 'art/flags', 'art/config', 'art/direction', 'art/flag'], function(_, paper, Flags, Config, Direction, Flag) {
+define(['underscore', 'paper', 'art/flags', 'art/config', 'art/direction', 'art/flag', 'art/cartesian', 'art/axis'], function(_, paper, Flags, Config, Direction, Flag, cartesian, Axis) {
     
     var Post = function(position) {
         this.position = position;
@@ -25,6 +25,14 @@ define(['underscore', 'paper', 'art/flags', 'art/config', 'art/direction', 'art/
             return this.grid.__surroundingCellAt(this.position, northSouthDirection, eastWestDirection);
         }, 
         
+        surroundingCells: function() {
+            return _.filter(_.map(cartesian(Axis.NORTH_SOUTH.directions, Axis.EAST_WEST.directions), function(a) {
+                return this.surroundingCell(a[0], a[1]);
+            }, this), function(cell) {
+               return !_.isUndefined(cell);
+            });
+        }, 
+        
         isWallEnd: function() {
             return this.grid.__isWallEndAt(this.position);
         }, 
@@ -46,7 +54,9 @@ define(['underscore', 'paper', 'art/flags', 'art/config', 'art/direction', 'art/
         }, 
         
         copy: function() {
-            return _.clone(this);
+            var that = _.clone(this);
+            that.flags = _.clone(this.flags);
+            return that;
         }, 
         
         unboundCopy: function() {

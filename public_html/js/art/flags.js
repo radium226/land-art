@@ -23,7 +23,9 @@ define(['underscore'], function(_) {
         }, 
         
         copy: function() {
-            return _.clone(this);
+            var that = new Flags();
+            that.__value = this.__value;
+            return that;
         }, 
         
         isLessThan: function (that) {

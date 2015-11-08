@@ -31,16 +31,16 @@ define(['underscore', 'art/size', 'art/flag', 'paper'], function(_, Size, Flag, 
         }, 
         grid: {
             shape: function(shape) {
-                shape.strokeColor = "#000000";
+                /*shape.strokeColor = "#000000";
                 shape.strokeWidth = 1;
                 shape.strokeCap = 'round';
-                shape.dashArray = [4, 4];
+                shape.dashArray = [4, 4];*/
             }
         }, 
         wall: {
             shape: function(shape, wall) {
                 /*if (wall.cell.flags.isSet(Flag.MAZE)) {
-                    shape.strokeColor = "#00FF00";
+                    shape.strokeColor = "#AAFFAA";
                     shape.strokeWidth = 1;
                 } else {
                     shape.strokeColor = "#AAAAAA";
@@ -53,9 +53,7 @@ define(['underscore', 'art/size', 'art/flag', 'paper'], function(_, Size, Flag, 
         post: {
             shape: function(shape, post) {
                 if (post.isAdded()) {
-                    if (post.flags.isSet(Flag.MAZE) || post.flags.isSet(Flag.FOREST)) {
-                        shape.fillColor = "#FF0000";
-                    }
+                    shape.fillColor = "#00FF00";
                 }/* else {
                     shape.fillColor = "#FFCCCC";
                 }*/

@@ -9,14 +9,14 @@ define(['underscore', 'art/direction', 'paper'], function(_, Direction, paper) {
                 var posts = cell.surroundingPosts();
                 //var f = lax ? _.any : _.all;
                 //console.log(_.filter(_.map(posts, Predicate.postInsideCircle(circle, gridPoint, config, threshold)), function(bool) { return bool; }).length);
-                return _.filter(_.map(posts, Predicate.postInsideCircle(circle, gridPoint, config)), function(bool) { return bool; }).length >= threshold;
+                return _.filter(_.map(posts, Predicate.postOnOrInsideCircle(circle, gridPoint, config)), function(bool) { return bool; }).length >= threshold;
             };
         }, 
         
         cellOutsideCircle: function(circle, gridPoint, config, threshold) {
             return function(cell) {
                 var posts = cell.surroundingPosts();
-                return _.filter(_.map(posts, Predicate.postOutsideCircle(circle, gridPoint, config)), function(bool) { return bool; }).length >= threshold;
+                return _.filter(_.map(posts, Predicate.postOnOrOutsideCircle(circle, gridPoint, config)), function(bool) { return bool; }).length >= threshold;
             };
         }, 
         
@@ -30,6 +30,26 @@ define(['underscore', 'art/direction', 'paper'], function(_, Direction, paper) {
             return function (post) {
                 return Predicate.__distanceBetween(config.post.pointAt(gridPoint, post), circle.center) > circle.radius;
             };
+        }, 
+        
+        postOnOrOutsideCircle: function(circle, gridPoint, config) {
+            return Predicate.__or(Predicate.postOutsideCircle(circle, gridPoint, config), Predicate.postOnCircle(circle, gridPoint, config));
+        }, 
+        
+        postOnOrInsideCircle: function(circle, gridPoint, config) {
+            return Predicate.__or(Predicate.postInsideCircle(circle, gridPoint, config), Predicate.postOnCircle(circle, gridPoint, config));
+        }, 
+        
+        postBetweenCircles: function(innerCircle, outerCircle, point, config) {
+            return function(post) {
+                return Predicate.postOnOrOutsideCircle(innerCircle, point, config)(post) && Predicate.postOnOrInsideCircle(outerCircle, point, config)(post);
+            };
+        }, 
+        
+        postFlagged: function(flag) {
+           return function(post) {
+               return post.flags.isSet(flag);
+           } 
         }, 
         
         __or: function(f, g) {

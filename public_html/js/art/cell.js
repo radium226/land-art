@@ -22,9 +22,9 @@ define(['underscore', 'paper', 'art/flags', 'art/size', 'art/config', 'art/posit
         }, 
         
         hasWall: function(direction) {
-            return _.find(this.walls, function(wall) {
+            return !_.isUndefined(_.find(this.walls, function(wall) {
                 return wall.direction.isEqualTo(direction);
-            });
+            }));
         },
         
         neighbour: function() {
@@ -68,6 +68,24 @@ define(['underscore', 'paper', 'art/flags', 'art/size', 'art/config', 'art/posit
             }, this);
             
             return surroundingPosts;
+        }, 
+        
+        surroundingCells: function () {
+            var offsets = [-1, 1];
+            
+            var surroundingPositions = _.map(offsets, function(width) {
+               return _.map(offsets, function(height) {
+                   return this.position.translate(new Size(width, height));
+               }, this);
+            }, this);
+            
+            var surroundingCells = _.filter(_.map(_.flatten(surroundingPositions), function(position) {
+                return this.grid.cellAt(position);
+            }, this), function(cell) {
+              return !_.isUndefined(cell);  
+            });
+            
+            return surroundingCells;
         }, 
         
         drawAt: function(path, config, point) {
@@ -179,6 +197,12 @@ define(['underscore', 'paper', 'art/flags', 'art/size', 'art/config', 'art/posit
             /*_.map(direction.axis().perpendicular().directions, function(perpendicularDirection) {
                 this.addPost(direction, perpendicularDirection);
             }, this);*/
+        }, 
+        
+        buildAllWalls: function() {
+            _.forEach(Direction.all(), function(direction) {
+                this.buildWall(direction);
+            }, this);
         }, 
 
         __addWall: function(direction) {

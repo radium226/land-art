@@ -117,8 +117,6 @@ define(['underscore', 'paper', 'art/post', 'art/cell', 'art/position', 'art/dire
                         });
                     });
                     
-                    
-                    
                     for (var a = 0; a < times; a++) {
                         for (var b = 0; b < times; b++) {
                             splitGrid.cells[i * times + a][j * times + b] = splitCells[a][b];
@@ -180,7 +178,7 @@ define(['underscore', 'paper', 'art/post', 'art/cell', 'art/position', 'art/dire
                 var surroundingCell = this.__surroundingCellAt(postPosition, northSouthDirection, eastWestDirection);
                 var end = false;
                 if (!_.isUndefined(surroundingCell)) {
-                    end = surroundingCell.hasWall(northSouthDirection.opposite()) || surroundingCell.hasWall(eastWestDirection.opposite());
+                    end = (surroundingCell.hasWall(northSouthDirection.opposite()) || surroundingCell.hasWall(eastWestDirection.opposite()));
                 }
                 return end;
                 
