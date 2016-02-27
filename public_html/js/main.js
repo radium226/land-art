@@ -178,10 +178,12 @@ require(['domReady', 'underscore', 'paper', 'art/grid', 'art/size', 'art/config'
 
         $('#generateAndDrawGrid').click(function() {
             paper.project.activeLayer.removeChildren();
-            paper.view.draw();
             return buttonCallback(widthAndHeightInPixels, path)();
-            paper.view.draw();
         });
+
+        setInterval(function() {
+          paper.view.draw();
+        }, 250);
 
 
     });
