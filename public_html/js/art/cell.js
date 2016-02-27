@@ -1,49 +1,49 @@
 "use strict";
 
 define(['underscore', 'paper', 'art/flags', 'art/size', 'art/config', 'art/position', 'art/direction', 'art/wall', 'art/axis', 'art/flag'], function(_, paper, Flags, Size, Config, Position, Direction, Wall, Axis, Flag) {
-    
+
     var Cell = function(position) {
         this.position = position;
         this.grid = undefined;
-        
+
         this.flags = new Flags();
-        
+
         this.walls = _.map(Direction.all(), function(direction) {
             return new Wall(direction).bindTo(this);
         }, this);
-        
+
     };
-    
+
     Cell.prototype = {
-        
+
         bindTo: function(grid) {
             this.grid = grid;
             return this;
-        }, 
-        
+        },
+
         hasWall: function(direction) {
             return !_.isUndefined(_.find(this.walls, function(wall) {
                 return wall.direction.isEqualTo(direction);
             }));
         },
-        
+
         neighbour: function() {
             var leftOffset = 0;
             var topOffset = 0;
 
             for (var k = 0; k < arguments.length; k++) {
                 var direction = arguments[k];
-                switch (direction) {    
-                    case Direction.NORTH: 
+                switch (direction) {
+                    case Direction.NORTH:
                         topOffset = -1;
-                        break; 
-                    case Direction.SOUTH: 
+                        break;
+                    case Direction.SOUTH:
                         topOffset = +1;
                         break;
                     case Direction.EAST:
                         leftOffset = +1;
                         break;
-                    case Direction.WEST: 
+                    case Direction.WEST:
                         leftOffset = -1;
                         break;
                 }
@@ -53,163 +53,163 @@ define(['underscore', 'paper', 'art/flags', 'art/size', 'art/config', 'art/posit
 
             return this.grid.cellAt(new Position(i, j));
         },
-        
+
         surroundingPosts: function () {
             var offsets = [0, 1];
-            
+
             var surroundingPositions = _.map(offsets, function(width) {
                return _.map(offsets, function(height) {
                    return this.position.translate(new Size(width, height));
                }, this);
             }, this);
-            
+
             var surroundingPosts =  _.map(_.flatten(surroundingPositions), function(position) {
                 return this.grid.postAt(position);
             }, this);
-            
+
             return surroundingPosts;
-        }, 
-        
+        },
+
         surroundingCells: function () {
             var offsets = [-1, 1];
-            
+
             var surroundingPositions = _.map(offsets, function(width) {
                return _.map(offsets, function(height) {
                    return this.position.translate(new Size(width, height));
                }, this);
             }, this);
-            
+
             var surroundingCells = _.filter(_.map(_.flatten(surroundingPositions), function(position) {
                 return this.grid.cellAt(position);
             }, this), function(cell) {
-              return !_.isUndefined(cell);  
+              return !_.isUndefined(cell);
             });
-            
+
             return surroundingCells;
-        }, 
-        
+        },
+
         drawAt: function(path, config, point) {
             var walls = _.filter(this.walls, function(wall) {
                 var keep = false;
                 switch (wall.direction) {
-                    case Direction.NORTH: 
+                    case Direction.NORTH:
                         var northNeighbour = this.neighbour(Direction.NORTH);
                         keep = _.isUndefined(northNeighbour) || northNeighbour.flags.isLessThanOrEqualTo(this.flags);
                         break;
-                        
-                    case Direction.WEST: 
+
+                    case Direction.WEST:
                         var westNeighbour = this.neighbour(Direction.WEST);
                         keep = _.isUndefined(westNeighbour) || westNeighbour.flags.isLessThanOrEqualTo(this.flags);
                         break;
-                        
-                    case Direction.SOUTH: 
+
+                    case Direction.SOUTH:
                         var southNeighbour = this.neighbour(Direction.SOUTH);
                         keep = _.isUndefined(southNeighbour) || southNeighbour.flags.isLessThan(this.flags);
                         break;
-                    
-                    case Direction.EAST: 
+
+                    case Direction.EAST:
                         var eastNeighbour = this.neighbour(Direction.EAST);
                         keep = _.isUndefined(eastNeighbour)|| eastNeighbour.flags.isLessThan(this.flags);
                         break;
                 }
                 return keep;
             }, this);
-            
+
             var x = point.x + this.position.i * config.cell.size.width;
             var y = point.y + this.position.j * config.cell.size.height;
 
             /*var rectangle = new paper.Path.Rectangle(new paper.Point(x, y), config.cell.size);
             config.cell.shape(rectangle, this);
             path.add(rectangle);*/
-            
+
             _.map(walls, function(wall) {
                 wall.drawAt(path, config, point);
             }, this);
-        }, 
-        
+        },
+
         addPost: function(northSouthDirection, eastWestDirection) {
-            var leftOffset = 0; 
-            var topOffset = 0; 
-            var directions = [northSouthDirection, eastWestDirection]; 
+            var leftOffset = 0;
+            var topOffset = 0;
+            var directions = [northSouthDirection, eastWestDirection];
             for (var k = 0; k < directions.length; k++) {
                 switch (directions[k]) {
-                    case Direction.NORTH: 
-                        
+                    case Direction.NORTH:
+
                         break;
-                    case Direction.SOUTH: 
+                    case Direction.SOUTH:
                         topOffset = 1;
                         break;
-                    case Direction.EAST: 
+                    case Direction.EAST:
                         leftOffset = 0;
                         break;
                     case Direction.WEST:
-                        
+
                         break;
                 }
             }
             var offsetPosition = new Position(leftOffset, topOffset);
             this.grid.__addPost(this.position.translate(offsetPosition));
-        }, 
-        
+        },
+
         removePost: function(northSouthDirection, eastWestDirection) {
-            var leftOffset = 0; 
-            var topOffset = 0; 
-            var directions = [northSouthDirection, eastWestDirection]; 
+            var leftOffset = 0;
+            var topOffset = 0;
+            var directions = [northSouthDirection, eastWestDirection];
             for (var k = 0; k < directions.length; k++) {
                 switch (directions[k]) {
-                    case Direction.NORTH: 
+                    case Direction.NORTH:
 
                         break;
-                    case Direction.SOUTH: 
+                    case Direction.SOUTH:
                         topOffset = 1;
                         break;
-                    case Direction.EAST: 
+                    case Direction.EAST:
                         leftOffset = 0;
                         break;
                     case Direction.WEST:
-                        
+
                         break;
                 }
             }
             var offsetPosition = new Position(leftOffset, topOffset);
             this.grid.__removePost(this.position.translate(offsetPosition));
-        }, 
-        
+        },
+
         breakWall: function(direction) {
             this.__removeWall(direction);
-            var neighbourCell = this.neighbour(direction); 
+            var neighbourCell = this.neighbour(direction);
             if (!_.isUndefined(neighbourCell)) {
                 neighbourCell.__removeWall(direction.opposite());
             }
-            
+
             /*_.map(direction.axis().perpendicular().directions, function(perpendicularDirection) {
                 this.removePost(direction, perpendicularDirection);
             }, this);*/
-        }, 
+        },
 
         buildWall: function(direction) {
             this.__addWall(direction);
-            var neighbourCell = this.neighbour(direction); 
+            var neighbourCell = this.neighbour(direction);
             if (!_.isUndefined(neighbourCell)) {
                 neighbourCell.__addWall(direction.opposite());
             }
-            
+
             /*_.map(direction.axis().perpendicular().directions, function(perpendicularDirection) {
                 this.addPost(direction, perpendicularDirection);
             }, this);*/
-        }, 
-        
+        },
+
         buildAllWalls: function() {
             _.forEach(Direction.all(), function(direction) {
                 this.buildWall(direction);
             }, this);
-        }, 
+        },
 
         __addWall: function(direction) {
             if (!this.hasWall(direction)) {
                 this.walls.push(new Wall(direction).bindTo(this));
             }
-        }, 
+        },
 
         __removeWall: function(direction) {
             for (var i = 0; i < this.walls.length; i++) {
@@ -219,26 +219,26 @@ define(['underscore', 'paper', 'art/flags', 'art/size', 'art/config', 'art/posit
                     break;
                 }
             }
-        }, 
-        
+        },
+
         copy: function() {
             var cell = _.clone(this);
-            
+
             cell.walls = _.map(cell.walls, function(wall) {
                 return _.clone(wall).bindTo(cell);
             });
-            
+
             return cell;
-        }, 
-        
+        },
+
         unboundCopy: function() {
             var copiedCell = this.copy();
-            copiedCell.grid = undefined; 
+            copiedCell.grid = undefined;
             return copiedCell;
-        }, 
-        
+        },
+
         __split: function(times) {
-            var cells = new Array(times); 
+            var cells = new Array(times);
             for (var i = 0; i < times; i++) {
                 cells[i] = new Array(times);
                 for (var j = 0; j < times; j++) {
@@ -252,7 +252,7 @@ define(['underscore', 'paper', 'art/flags', 'art/size', 'art/config', 'art/posit
                 var wall = this.walls[k];
                 var direction = wall.direction;
                 switch (direction) {
-                    case Direction.NORTH: 
+                    case Direction.NORTH:
                         for (var i = 0; i < times; i++) {
                             cells[i][0].__addWall(Direction.NORTH);
                         }
@@ -263,7 +263,7 @@ define(['underscore', 'paper', 'art/flags', 'art/size', 'art/config', 'art/posit
                         }
                         break;
 
-                    case Direction.EAST: 
+                    case Direction.EAST:
                         for (var j = 0; j < times; j++) {
                             cells[times - 1][j].__addWall(Direction.EAST);
                         }
@@ -283,23 +283,23 @@ define(['underscore', 'paper', 'art/flags', 'art/size', 'art/config', 'art/posit
             }
 
             return cells;
-        }, 
-        
+        },
+
         breakAllWalls: function() {
             _.forEach(Direction.all(), function(direction) {
                 this.breakWall(direction);
             }, this);
-        }, 
-        
+        },
+
         mirror: function(axis) {
             _.forEach(this.walls, function(wall) {
                 wall.mirror(axis);
             });
-            
+
             return this;
         }
-        
+
     };
-    
+
     return Cell;
 });

@@ -1,25 +1,26 @@
 "use strict";
 
 define(['underscore', 'paper', 'art/post', 'art/cell', 'art/position', 'art/direction', 'art/cartesian', 'art/axis', 'art/flag', 'art/size'], function(_, paper, Post, Cell, Position, Direction, cartesian, Axis, Flag, Size) {
-    
-    var Grid = function(size) {
-        
+
+    var Grid = function(size, postHeight) {
+
         this.size = size;
-        
+        this.postHeight = postHeight;
+
         this.posts = this.__init(true, function(position) {
-            var post = new Post(position).bindTo(this);
+            var post = new Post(position, postHeight).bindTo(this);
             post.flags.set(Flag.ADDED);
             return post;
         });
-        
+
         this.cells = this.__init(false, function(position) {
             return new Cell(position).bindTo(this);
         });
-        
+
     };
-    
+
     Grid.prototype = {
-        
+
         __init: function(inclusive, callback) {
             var offset = inclusive ? +1 : 0;
             return _.map(_.range(0, this.size.width + offset), function(i) {
@@ -27,45 +28,45 @@ define(['underscore', 'paper', 'art/post', 'art/cell', 'art/position', 'art/dire
                     return _.bind(callback, this)(new Position(i, j));
                 }, this);
              }, this);
-        }, 
-        
+        },
+
         __visit: function(items, callback) {
             _.each(items, function(itemsOfColumn, i) {
                _.each(itemsOfColumn, function(item, j) {
                    callback(item);
                });
            });
-        }, 
-        
+        },
+
         __isPositionOufOfRange: function(inclusive, position) {
-            var i = position.i; 
+            var i = position.i;
             var j = position.j;
             var offset = inclusive ? +1 : 0;
             return i < 0 || j < 0 || i >= this.size.width + offset || j >= this.size.height + offset;
         },
-        
+
         postAt: function(position) {
             return this.__isPositionOufOfRange(true, position) ? undefined : this.posts[position.i][position.j];
-        }, 
-        
+        },
+
         __addPost: function(position) {
             this.posts[position.i][position.j].flags.set(Flag.ADDED).unset(Flag.REMOVED);
-        }, 
-        
+        },
+
         __removePost: function(position) {
             this.posts[position.i][position.j].flags.set(Flag.REMOVED).unset(Flag.ADDED);
-        }, 
-        
+        },
+
         cellAt: function(position) {
             return this.__isPositionOufOfRange(false, position) ? undefined: this.cells[position.i][position.j];
-        }, 
-        
+        },
+
         visitCells: function(callback) {
             this.__visit(this.cells, function(cell) {
                 callback(cell);
             });
-        }, 
-        
+        },
+
         filterAndVisitPosts: function(predicate, callback) {
             this.visitPosts(function(post) {
                 if (predicate(post)) {
@@ -73,7 +74,7 @@ define(['underscore', 'paper', 'art/post', 'art/cell', 'art/position', 'art/dire
                 }
             });
         },
-        
+
         filterAndVisitCells: function(predicate, callback) {
             this.visitCells(function(cell) {
                 if (predicate(cell)) {
@@ -81,34 +82,36 @@ define(['underscore', 'paper', 'art/post', 'art/cell', 'art/position', 'art/dire
                 }
             });
         },
-        
+
         visitPosts: function(callback) {
             this.__visit(this.posts, function(post) {
                 callback(post);
             });
-        }, 
-        
+        },
+
         drawAt: function(path, config, coordinates) {
             this.visitCells(function(cell) {
-                cell.drawAt(path, config, coordinates);
+                var cellPath = new paper.Path();
+                cell.drawAt(cellPath, config, coordinates);
             });
-            
+
             this.visitPosts(function(post) {
                 if (!_.isNull(post)) {
-                    post.drawAt(path, config, coordinates); 
+                    var postPath = new paper.Path();
+                    post.drawAt(postPath, config, coordinates);
                 }
             });
-            
             var rectangle = new paper.Path.Rectangle(coordinates, new paper.Size(this.size.width * config.cell.size.width, this.size.height * config.cell.size.height));
+
             config.grid.shape(rectangle);
             path.add(rectangle);
-        }, 
-        
+        },
+
         split: function(times, postStrategy) {
-            
+
             var splitGridSize = this.size.multiply(times);
-            var splitGrid = new Grid(splitGridSize);           
-            
+            var splitGrid = new Grid(splitGridSize, this.postHeight);
+
             for (var i = 0; i < this.size.width; i++) {
                 for (var j = 0; j < this.size.height; j++) {
                     var splitCells = _.map(this.cellAt(new Position(i, j)).__split(times), function(columnSplitCells) {
@@ -116,7 +119,7 @@ define(['underscore', 'paper', 'art/post', 'art/cell', 'art/position', 'art/dire
                             return splitCell.bindTo(splitGrid);
                         });
                     });
-                    
+
                     for (var a = 0; a < times; a++) {
                         for (var b = 0; b < times; b++) {
                             splitGrid.cells[i * times + a][j * times + b] = splitCells[a][b];
@@ -124,7 +127,7 @@ define(['underscore', 'paper', 'art/post', 'art/cell', 'art/position', 'art/dire
                     }
                 }
             }
-            
+
             // On fix le problème lié au rafraichissement des Posts
             _.forEach(splitGrid.cells, function(columnCells) {
                 _.forEach(columnCells, function(cell) {
@@ -139,74 +142,74 @@ define(['underscore', 'paper', 'art/post', 'art/cell', 'art/position', 'art/dire
                     });
                 }, this);
             }, this);
-            
+
             postStrategy(splitGrid);
-            
+
             return splitGrid;
-        }, 
-        
+        },
+
         __surroundingCellAt: function(postPosition) {
             var leftOffset = 0;
             var topOffset = 0;
 
             for (var k = 1; k < arguments.length; k++) {
                 var direction = arguments[k];
-                switch (direction) {    
-                    case Direction.NORTH: 
+                switch (direction) {
+                    case Direction.NORTH:
                         topOffset = -1;
-                        break; 
-                    case Direction.SOUTH: 
+                        break;
+                    case Direction.SOUTH:
                         topOffset = 0;
                         break;
                     case Direction.EAST:
                         leftOffset = 0;
                         break;
-                    case Direction.WEST: 
+                    case Direction.WEST:
                         leftOffset = -1;
                         break;
                 }
             }
 
             return this.cellAt(postPosition.translate(new Position(leftOffset, topOffset)));
-        }, 
-        
+        },
+
         __isWallEndAt: function(postPosition) {
             return _.any(cartesian(Axis.NORTH_SOUTH.directions, Axis.EAST_WEST.directions), function(directions) {
                 var northSouthDirection = directions[0];
                 var eastWestDirection = directions[1];
-                
+
                 var surroundingCell = this.__surroundingCellAt(postPosition, northSouthDirection, eastWestDirection);
                 var end = false;
                 if (!_.isUndefined(surroundingCell)) {
                     end = (surroundingCell.hasWall(northSouthDirection.opposite()) || surroundingCell.hasWall(eastWestDirection.opposite()));
                 }
                 return end;
-                
+
             }, this);
-        }, 
-        
+        },
+
         __copyAndBindCellAt: function(cell, position) {
             var copiedCell = cell.unboundCopy().bindTo(this);
             copiedCell.position = position;
             this.cells[position.i][position.j] = copiedCell;
-        }, 
-        
+        },
+
         __copyAndBindPostAt: function(post, position) {
             var copiedPost = post.unboundCopy().bindTo(this);
             copiedPost.position = position;
             this.posts[position.i][position.j] = copiedPost;
-        }, 
-        
+        },
+
         assemble: function(direction, that) {
             return Grid.__assemble(this, direction, that);
-        }, 
-        
+        },
+
         mirror: function(axis) {
             switch (axis) {
                 case Axis.NORTH_SOUTH:
                     var width = this.size.width;
                     var height = this.size.height;
-                    var mirroredGrid = new Grid(new Size(width, height));
+                    var mirroredGrid = new Grid(new Size(width, height), this.postHeight);
                     this.size.forEachPosition(function(position) {
                         var mirroredCellPosition = new Position(width - position.i - 1, position.j);
                         var mirroredPostPosition = new Position(width - position.i, position.j);
@@ -215,15 +218,15 @@ define(['underscore', 'paper', 'art/post', 'art/cell', 'art/position', 'art/dire
                             mirroredGrid.__copyAndBindCellAt(cell, mirroredCellPosition);
                             mirroredGrid.cellAt(mirroredCellPosition).mirror(axis);
                         }
-                        
+
                         mirroredGrid.__copyAndBindPostAt(this.postAt(position), mirroredPostPosition);
                     }, true, this);
                     return mirroredGrid;
                     break
-                case Axis.EAST_WEST: 
+                case Axis.EAST_WEST:
                     var width = this.size.width;
                     var height = this.size.height;
-                    var mirroredGrid = new Grid(new Size(width, height));
+                    var mirroredGrid = new Grid(new Size(width, height), this.postHeight);
                     this.size.forEachPosition(function(position) {
                         var mirroredCellPosition = new Position(position.i, height - position.j - 1);
                         var mirroredPostPosition  = new Position(position.i, height - position.j);
@@ -237,26 +240,26 @@ define(['underscore', 'paper', 'art/post', 'art/cell', 'art/position', 'art/dire
                     return mirroredGrid;
                     break;
             }
-            
-        }, 
-                
+
+        },
+
         filterAndCountPosts: function(predicate) {
             return _.filter(_.flatten(this.posts), predicate).length;
         }
-        
+
     };
-    
+
     Grid.__assemble = function(oneGrid, direction, otherGrid) {
         switch (direction) {
-            case Direction.NORTH: 
+            case Direction.NORTH:
                 return Grid.__assemble(otherGrid, Direction.SOUTH, oneGrid);
                 break;
-                
+
             case Direction.SOUTH:
                 var height = oneGrid.size.height + otherGrid.size.height;
                 var width = Math.min(oneGrid.size.width, otherGrid.size.width);
-                
-                var assembledGrid = new Grid(new Size(width, height));
+
+                var assembledGrid = new Grid(new Size(width, height), this.postHeight);
                 for (var i = 0; i <= assembledGrid.size.width; i++) {
                     for (var j = 0; j <= oneGrid.size.height; j++) {
                         if (i !== assembledGrid.size.width && j !== oneGrid.size.height) {
@@ -267,7 +270,7 @@ define(['underscore', 'paper', 'art/post', 'art/cell', 'art/position', 'art/dire
                         assembledGrid.__copyAndBindPostAt(post, new Position(i, j));
                     }
                 }
-                
+
                 for (var i = 0; i <= assembledGrid.size.width; i++) {
                     for (var j = 0; j <= otherGrid.size.height; j++) {
                         if (i !== assembledGrid.size.width && j !== otherGrid.size.height) {
@@ -278,19 +281,19 @@ define(['underscore', 'paper', 'art/post', 'art/cell', 'art/position', 'art/dire
                         assembledGrid.__copyAndBindPostAt(post, new Position(i, oneGrid.size.height + j));
                     }
                 }
-                
+
                 return assembledGrid;
                 break;
-                
-            case Direction.WEST: 
+
+            case Direction.WEST:
                 return Grid.__assemble(otherGrid, Direction.EAST, oneGrid);
                 break;
-                
+
             case Direction.EAST:
                 var width = oneGrid.size.width + otherGrid.size.width;
                 var height = Math.min(oneGrid.size.height, otherGrid.size.height);
-                
-                var assembledGrid = new Grid(new Size(width, height));
+
+                var assembledGrid = new Grid(new Size(width, height), this.postHeight);
                 for (var i = 0; i <= oneGrid.size.width; i++) {
                     for (var j = 0; j <= height; j++) {
                         if (i !== oneGrid.size.width && j !== height) {
@@ -301,7 +304,7 @@ define(['underscore', 'paper', 'art/post', 'art/cell', 'art/position', 'art/dire
                         assembledGrid.__copyAndBindPostAt(post, new Position(i, j));
                     }
                 }
-                
+
                 for (var i = 0; i <= otherGrid.size.width; i++) {
                     for (var j = 0; j <= height; j++) {
                         if (i !== otherGrid.size.width && j !== height) {
@@ -312,11 +315,11 @@ define(['underscore', 'paper', 'art/post', 'art/cell', 'art/position', 'art/dire
                         assembledGrid.__copyAndBindPostAt(post, new Position(oneGrid.size.width + i, j));
                     }
                 }
-                
+
                 return assembledGrid;
                 break;
         }
     };
-    
+
     return Grid;
 });
