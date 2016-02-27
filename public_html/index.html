@@ -2,20 +2,74 @@
 <html lang="en">
     <head>
         <title>Land Art</title>
-        <meta charset="UTF-8" /> 
-        <script data-main="js/main" src="js/require.js"></script>
-        <style type="text/css">
-            #maze {
-                width: 600px;
-                height: 600px;
-                border: #000000 1px solid;
-            }
-        </style>
+        <meta charset="UTF-8" />
 
+        <script src="js/lib/jquery.js"></script>
+
+        <script src="js/lib/bootstrap.js"></script>
+        <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
+
+        <script src="js/lib/seedrandom.js"></script>
+
+        <script data-main="js/main" src="js/require.js"></script>
+
+        <style>
+          #maze {
+            width: 100%;
+          }
+
+          #postSpecs {
+            height: 150px;
+          }
+        </style>
     </head>
     <body>
-        <canvas id="maze"></canvas>
-        <br />
-        Il y a <input type="text" id="postCount" disabled="disabled"/> piquets
+      <div class="container">
+        <div class="page-header">
+          <h1>Land-Art</h1>
+        </div>
+        <div class="row">
+          <div class="col-md-6">
+            <canvas id="maze"></canvas>
+            <br />
+            <div>Il y a <input type="text" id="postCount" disabled="disabled"/> piquets</div>
+          </div>
+          <div class="col-md-6">
+            <form>
+              <div class="form-group">
+                <label for="randomSeed">Graine de chaos</label>
+                <input type="text" class="form-control" id="randomSeed" value="Motörhead">
+              </div>
+              <div class="form-group">
+                <label for="postsPerCellInMaze">Nombre de piquets pour un mur du labyrinthe</label>
+                <input type="number" class="form-control" id="postsPerCellInMaze" value="2">
+              </div>
+              <div class="form-group">
+                <label for="gladeColumnAndRowCount">Taille de la clairière</label>
+                <input type="number" class="form-control" id="gladeColumnAndRowCount" value="2">
+              </div>
+              <div class="form-group">
+                <label for="forestColumnAndRowCount">Taille de la forêt de piquets</label>
+                <input type="number" class="form-control" id="forestColumnAndRowCount" value="2">
+              </div>
+              <div class="form-group">
+                <label for="mazeColumnAndRowCount">Taille du labyrinthe</label>
+                <input type="number" class="form-control" id="mazeColumnAndRowCount" value="4">
+              </div>
+              <div class="form-group">
+                <label for="postSpecs">Hauteurs (et couleurs) des piquets</label>
+                <textarea class="form-control" id="postSpecs">[
+  { "height": 3, "color": "red" },
+  { "height": 4, "color": "green" },
+  { "height": 5, "color": "blue" }
+]</textarea>
+              </div>
+            </form>
+            <button id="generateAndDrawGrid" class="btn btn-primary btn-lg">Générer</button
+          </div>
+        </div>
+
+
+      </div>
     </body>
 </html>
